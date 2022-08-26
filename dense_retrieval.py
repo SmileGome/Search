@@ -63,10 +63,10 @@ class DenseRetrieval:
         self.p_embs = None
         self.mode = mode
 
-        if bm25 == 'True':
+        if bm25 == 'True':      # bm25
             corpus = np.array(list(set([example for example in self.dataset['context']])))
 
-            tokenized_corpus = [self.split_space(doc) for doc in corpus]
+            tokenized_corpus = [self.split_space(doc) for doc in corpus]    # 띄어쓰기로 토큰화 (우리는 우리 토크나이저로 변경하면 될 듯)
             self.bm25 = BM25Okapi(tokenized_corpus)
 
         if mode == 'train':
