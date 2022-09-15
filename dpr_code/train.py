@@ -1,6 +1,6 @@
 # set seed
 from tokenizer import make_tokenizer
-from dataset import make_final_dataset
+from dataset import make_final_dataset, split_train_test
 
 import numpy as np
 import random
@@ -39,10 +39,11 @@ def train(args):
   # load tokenizer
   tokenizer = Tokenizer.from_file(args['tokenizer_path'])
   
-  # load 
-  
+  # load dataset
+  split_train_test(args['all_file_name']) 
   train_dataset = make_final_dataset(args['train_file_name'], args['num_neg'], tokenizer) 
   val_dataset = make_final_dataset(args['val_file_name'], args['num_neg'], tokenizer) 
+  test_dataset = make_final_dataset(args['test_file_name'], args['num_neg'], tokenizer)
 
   # make dataloader
   train_dataloader = DataLoader(train_dataset, batch_size=args['batch_size'], shuffle=True, drop_last=True)
@@ -125,7 +126,7 @@ def train(args):
       q_encoder.zero_grad()
       p_encoder.zero_grad()      
       torch.cuda.empty_cache()
-
+      
       if args['wandb'] == True:
         wandb.log({'Train/train_loss': loss.item(), 'epoch':epoch}, step=step)
         step += 1

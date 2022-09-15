@@ -1,19 +1,40 @@
 import json
+from threading import local
 import numpy as np
 import torch
 from torch.utils.data import TensorDataset
 
-def split_train_test():
-  return 
+def split_train_test(file_name):
+  with open(file_name, 'r') as origin:
+    data = json.load(origin)
+  
+  doc_length = len(data['latex_anno'])
+  train_len = int(doc_length*0.8)
+  left_length = doc_length-train_len
+  
+  if left_length%2 == 0:
+    val_len, test_len = left_length//2, left_length//2
+  else: val_len, test_len = left_length//2, left_length-(left_length//2) 
+  
+  # all_doc = np.array(data['latex_anno'])
+  # idx1, idx2, idx3 = np.random.randint(, size=train_len)
+  train_data = data['latex_anno'][:train_len]
+  val_data =  data['latex_anno'][train_len:train_len+val_len]
+  test_data = data['latex_anno'][train_len+val_len:]
+
+  for d in ['train_data', 'val_data', 'test_data']:
+    with open('data/'+d+'.json', 'w') as result:
+      json.dump(locals()[d], result)
+  
 
 def make_negative_dataset(file_name, num_neg):
   with open(file_name) as f:
       data = json.load(f)
-  all_latex = np.array([' '.join(doc['latex']) for doc in data['latex_anno']])
+  all_latex = np.array([' '.join(doc['latex']) for doc in data])
   question = []
   context = []
 
-  for doc_num, doc in enumerate(data['latex_anno']):
+  for doc_num, doc in enumerate(data):
     latexes = doc['latex']
     if len(latexes)==1:
       continue
@@ -44,7 +65,7 @@ def make_dataset(file_name):
   question = []
   context = []
 
-  for doc in data['latex_anno']:
+  for doc in data:
     latexes = doc['latex']
     if len(latexes)==1:
       continue
@@ -82,7 +103,7 @@ def make_tensor_dataset(p_dataset, q_dataset, num_neg):
   return dataset
 
 def make_final_dataset(file_name, num_neg, tokenizer):
-  question, context = make_negative_dataset(file_name)
+  question, context = make_negative_dataset(file_name, num_neg)
   q_seqs, p_seqs = tokenizer.encode_batch(question), tokenizer.encode_batch(context)
   q_dataset, p_dataset = make_tri_dataset(q_seqs), make_tri_dataset(p_seqs)
   dataset = make_tensor_dataset(p_dataset, q_dataset, num_neg)
@@ -91,7 +112,8 @@ def make_final_dataset(file_name, num_neg, tokenizer):
 
 if __name__=='__main__':
   file_name = 'data/anno.json'
-  num_neg = 2
-  question, context = make_negative_dataset(file_name, num_neg)
-  print(len(question))
-  print(len(context))
+  # num_neg = 2
+  # question, context = make_negative_dataset(file_name, num_neg)
+  # print(len(question))
+  # print(len(context))
+  split_train_test('data/anno.json')
