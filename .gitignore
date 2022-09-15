@@ -1,7 +1,7 @@
 __pycache__
 
 
-dpr_code/config/
+# dpr_code/config/
 !config_train_ex.yaml
 
 dpr_code/data
