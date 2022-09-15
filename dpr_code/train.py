@@ -1,6 +1,6 @@
 # set seed
 from tokenizer import make_tokenizer
-from dataset import make_negative_dataset, make_tri_dataset, make_tensor_dataset
+from dataset import make_final_dataset
 
 import numpy as np
 import random
@@ -39,15 +39,15 @@ def train(args):
   # load tokenizer
   tokenizer = Tokenizer.from_file(args['tokenizer_path'])
   
-  # load dataset
-  question, context = make_negative_dataset(args['file_name'], args['num_neg'])
-  q_seqs, p_seqs = tokenizer.encode_batch(question), tokenizer.encode_batch(context)
-  q_dataset, p_dataset = make_tri_dataset(q_seqs), make_tri_dataset(p_seqs)
-  train_dataset = make_tensor_dataset(p_dataset, q_dataset, args['num_neg'])
+  # load 
+  
+  train_dataset = make_final_dataset(args['train_file_name'], args['num_neg'], tokenizer) 
+  val_dataset = make_final_dataset(args['val_file_name'], args['num_neg'], tokenizer) 
 
   # make dataloader
   train_dataloader = DataLoader(train_dataset, batch_size=args['batch_size'], shuffle=True, drop_last=True)
-
+  val_dataloader = DataLoader(val_dataset, batch_size=args['batch_size'], shuffle=True, drop_last=True)
+  
   # load model
   config = DPRConfig.from_pretrained(args['model_path'])
   q_encoder = DPRQuestionEncoder.from_pretrained(args['model_path'], config=config)
@@ -55,12 +55,9 @@ def train(args):
   q_encoder, p_encoder = q_encoder.to(device), p_encoder.to(device)
   
   def change_config(model, tokenizer):
-    # set special tokens used for creating the decoder_input_ids from the labels
     model.config.decoder_start_token_id = tokenizer.token_to_id("[CLS]")
     model.config.pad_token_id = tokenizer.token_to_id("[PAD]")
-    # make sure vocab size is set correctly
     model.config.vocab_size = args['vocab_size']
-    # model.max_position_embeddings = max_length_token
 
     # set beam search parameters
     model.config.eos_token_id = tokenizer.token_to_id("[SEP]")
@@ -95,8 +92,6 @@ def train(args):
 
     train_loss = 0.0
     for i, batch in enumerate(tqdm(train_dataloader)):
-      # get the inputs
-      # batch: {'pixel_values': (batch_size, 3, 384, 384), 'labels':(batch_size, 100)}
       batch = tuple(t.to(device) for t in batch)
 
       p_inputs = {'input_ids': batch[0].view(args['batch_size']*(args['num_neg']+1), -1), 
@@ -108,17 +103,14 @@ def train(args):
                   'attention_mask': batch[4],
                   'token_type_ids': batch[5]}
 
-      p_outputs = p_encoder(**p_inputs).pooler_output  #(batch_size*(args['num_neg']+1), emb_dim) # 30, 768
+  
+      # (batch_size, emb_dim) x (emb_dim, batch_size) = (batch_size, batch_size)
+      # batch내의 모든 쿼리와 passage간의 유사도 구하기(matmul)
+      p_outputs = p_encoder(**p_inputs).pooler_output  #(batch_size*(args['num_neg']+1), emb_dim)
       q_outputs = q_encoder(**q_inputs).pooler_output  #(batch_size*, emb_dim)
       q_outputs = torch.unsqueeze(q_outputs, 1)
       p_outputs = p_outputs.reshape(args['batch_size'], -1, args['num_neg']+1)
       sim_scores = torch.bmm(q_outputs, p_outputs) 
-  
-      # (batch_size, emb_dim) x (emb_dim, batch_size) = (batch_size, batch_size)
-      # batch내의 모든 쿼리와 passage간의 유사도 구하기(matmul)
-
-      # target: position of positive samples = diagonal element 
-      # 대각원소의 값이 커지는 방향으로 학습해야함
       targets = torch.zeros(args['batch_size']).long()      
       targets = targets.to(device)
       
@@ -142,7 +134,61 @@ def train(args):
         print(f"Loss: {loss.item()}")
         
     print(f"Loss after epoch {epoch}:", train_loss/len(train_dataloader))
+  
+    # validate
+    print(f'Start {epoch}th evaluation!!!')
+    q_encoder.eval()
+    p_encoder.eval()
+    
+    val_loss = 0.0
+    best_loss = int(1e9)
+    
+    with torch.no_grad():
+      for i, batch in enumerate(tqdm(val_dataloader)):
+        batch = tuple(t.to(device) for t in batch)
 
+        p_inputs = {'input_ids': batch[0].view(args['batch_size']*(args['num_neg']+1), -1), 
+                    'attention_mask': batch[1].view(args['batch_size']*(args['num_neg']+1), -1),
+                    'token_type_ids': batch[2].view(args['batch_size']*(args['num_neg']+1), -1)
+                }
+        
+        q_inputs = {'input_ids': batch[3],
+                    'attention_mask': batch[4],
+                    'token_type_ids': batch[5]}
+
+        p_outputs = p_encoder(**p_inputs).pooler_output  #(batch_size*(args['num_neg']+1), emb_dim) # 30, 768
+        q_outputs = q_encoder(**q_inputs).pooler_output  #(batch_size*, emb_dim)
+        q_outputs = torch.unsqueeze(q_outputs, 1)
+        p_outputs = p_outputs.reshape(args['batch_size'], -1, args['num_neg']+1)
+        sim_scores = torch.bmm(q_outputs, p_outputs) 
+    
+        # (batch_size, emb_dim) x (emb_dim, batch_size) = (batch_size, batch_size)
+        # batch내의 모든 쿼리와 passage간의 유사도 구하기(matmul)
+
+        targets = torch.zeros(args['batch_size']).long()      
+        targets = targets.to(device)
+        
+        sim_scores = sim_scores.view(args['batch_size'], -1)
+        sim_scores = F.log_softmax(sim_scores, dim=1)
+
+        loss = F.nll_loss(sim_scores, targets) # positive는 가깝게, negative는 멀게
+    
+        torch.cuda.empty_cache()
+
+        val_loss += loss.item()
+
+    epoch_loss = val_loss / len(val_dataloader)
+
+    print(f"{epoch}th epoch Val LOSS:{epoch_loss}")
+    if args['wandb'] == True:
+      wandb.log({
+                  'Val/val_loss': epoch_loss,
+                  'epoch':epoch}, step=step)
+ 
+    if epoch_loss < best_loss:
+      p_encoder.save_pretrained(f"model/{args['name']}/p_encoder/ep{epoch}_l{epoch_loss:.3f}")
+      q_encoder.save_pretrained(f"model/{args['name']}/q_encoder/ep{epoch}_l{epoch_loss:.3f}")
+      
 
 if __name__=='__main__':
   parser = argparse.ArgumentParser()
