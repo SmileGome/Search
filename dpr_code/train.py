@@ -1,6 +1,6 @@
 # set seed
 from tokenizer import make_tokenizer
-from dataset import make_final_dataset, split_train_test
+from dataset import LatexDataset, make_final_dataset, split_train_test
 
 import numpy as np
 import random
@@ -41,13 +41,17 @@ def train(args):
   
   # load dataset
   split_train_test(args['all_file_name']) 
-  train_dataset = make_final_dataset(args['train_file_name'], args['num_neg'], tokenizer) 
-  val_dataset = make_final_dataset(args['val_file_name'], args['num_neg'], tokenizer) 
-  test_dataset = make_final_dataset(args['test_file_name'], args['num_neg'], tokenizer)
+  train_q, train_p = make_final_dataset(args['train_file_name'], args['num_neg'], tokenizer) 
+  val_q, val_p = make_final_dataset(args['val_file_name'], args['num_neg'], tokenizer) 
+  test_q, test_p = make_final_dataset(args['test_file_name'], args['num_neg'], tokenizer)
+
+  train_dataset = LatexDataset(train_q, train_p)
+  val_dataset = LatexDataset(val_q, val_p)
+  test_dataset = LatexDataset(test_q, test_p)
 
   # make dataloader
-  train_dataloader = DataLoader(train_dataset, batch_size=args['batch_size'], shuffle=True, drop_last=True)
-  val_dataloader = DataLoader(val_dataset, batch_size=args['batch_size'], shuffle=True, drop_last=True)
+  train_dataloader = DataLoader(train_dataset, batch_size=args['batch_size'], shuffle=False, drop_last=True)
+  val_dataloader = DataLoader(val_dataset, batch_size=args['batch_size'], shuffle=False, drop_last=True)
   
   # load model
   config = DPRConfig.from_pretrained(args['model_path'])
