@@ -108,37 +108,35 @@ def train(args):
         for i, batch in enumerate(tqdm(train_dataloader)):
             batch = tuple(t.to(device) for t in batch)
 
-            p_inputs = {'input_ids': batch[0].view(args['batch_size']*(args['num_neg']+1), -1), 
-                        'token_type_ids': batch[1].view(args['batch_size']*(args['num_neg']+1), -1),
-                        'attention_mask': batch[2].view(args['batch_size']*(args['num_neg']+1), -1)
-                        }
-            
             q_inputs = {'input_ids': batch[0],
                         'token_type_ids': batch[1],
                         'attention_mask': batch[2]
                         }      
                                 
-            p_outputs = p_encoder(**p_inputs).pooler_output  #(batch_size*(args['num_neg']+1), emb_dim)
+            p_inputs = {'input_ids': batch[3].view(args['batch_size']*(args['num_neg']+1), -1), 
+                        'token_type_ids': batch[4].view(args['batch_size']*(args['num_neg']+1), -1),
+                        'attention_mask': batch[5].view(args['batch_size']*(args['num_neg']+1), -1)
+                        }
+            
             q_outputs = q_encoder(**q_inputs).pooler_output  #(batch_size*, emb_dim)
-            q_outputs = torch.unsqueeze(q_outputs, 1)
-            p_outputs = p_outputs.reshape(args['batch_size'], -1, args['num_neg']+1)
-            sim_scores = torch.bmm(q_outputs, p_outputs) 
-            targets = torch.zeros(args['batch_size']).long()    
-            targets[0] = 1  
+            p_outputs = p_encoder(**p_inputs).pooler_output  #(batch_size*(args['num_neg']+1), emb_dim)
+            q_outputs = torch.unsqueeze(q_outputs, 1) # (batch_size, 1, emb_dim)
+            p_outputs = p_outputs.reshape(args['batch_size'], -1, args['num_neg']+1) # (batch_size, emb_dim, num_neg+1)
+            sim_scores = torch.bmm(q_outputs, p_outputs) # (batch_size, num_neg+1)
+            targets = torch.zeros(args['batch_size']).long() # 각 배치의 몇번째 클래스가 정답인지 지정. 첫번째가 pos이므로 모두 0    
             targets = targets.to(device)
             sim_scores = sim_scores.view(args['batch_size'], -1)
             sim_scores = F.log_softmax(sim_scores, dim=1)
 
             # positive는 가깝게, negative는 멀게
             loss = F.nll_loss(sim_scores, targets)
-
             loss.backward()
             optimizer.step()
             scheduler.step()
             q_encoder.zero_grad()
             p_encoder.zero_grad()
             torch.cuda.empty_cache()
-
+            break
             if args['wandb'] == True:
                 wandb.log({'Train/train_loss': loss.item(),
                           'epoch': epoch}, step=step)
@@ -146,7 +144,6 @@ def train(args):
 
             if i % args['report_step'] == 0:
                 print(f"Loss: {loss.item()}")
-
         print(f"Loss after epoch {epoch}:", train_loss/len(train_dataloader))
 
         # validate
@@ -161,41 +158,32 @@ def train(args):
             for i, batch in enumerate(tqdm(val_dataloader)):
                 batch = tuple(t.to(device) for t in batch)
 
-                p_inputs = {'input_ids': batch[0].view(args['batch_size']*(args['num_neg']+1), -1),
-                            'attention_mask': batch[1].view(args['batch_size']*(args['num_neg']+1), -1),
-                            'token_type_ids': batch[2].view(args['batch_size']*(args['num_neg']+1), -1)
+                q_inputs = {'input_ids': batch[0],
+                            'token_type_ids': batch[1],
+                            'attention_mask': batch[2]
+                            }      
+                                    
+                p_inputs = {'input_ids': batch[3].view(args['batch_size']*(args['num_neg']+1), -1), 
+                            'token_type_ids': batch[4].view(args['batch_size']*(args['num_neg']+1), -1),
+                            'attention_mask': batch[5].view(args['batch_size']*(args['num_neg']+1), -1)
                             }
-
-                q_inputs = {'input_ids': batch[3],
-                            'attention_mask': batch[4],
-                            'token_type_ids': batch[5]}
-
-                # (batch_size*(args['num_neg']+1), emb_dim) # 30, 768
-                p_outputs = p_encoder(**p_inputs).pooler_output
-                # (batch_size*, emb_dim)
-                q_outputs = q_encoder(**q_inputs).pooler_output
-                q_outputs = torch.unsqueeze(q_outputs, 1)
-                p_outputs = p_outputs.reshape(
-                    args['batch_size'], -1, args['num_neg']+1)
-                sim_scores = torch.bmm(q_outputs, p_outputs)
-
-                # (batch_size, emb_dim) x (emb_dim, batch_size) = (batch_size, batch_size)
-                # batch내의 모든 쿼리와 passage간의 유사도 구하기(matmul)
-
-                targets = torch.zeros(args['batch_size']).long()
+                
+                q_outputs = q_encoder(**q_inputs).pooler_output  #(batch_size*, emb_dim)
+                p_outputs = p_encoder(**p_inputs).pooler_output  #(batch_size*(args['num_neg']+1), emb_dim)
+                q_outputs = torch.unsqueeze(q_outputs, 1) # (batch_size, 1, emb_dim)
+                p_outputs = p_outputs.reshape(args['batch_size'], -1, args['num_neg']+1) # (batch_size, emb_dim, num_neg+1)
+                sim_scores = torch.bmm(q_outputs, p_outputs) # (batch_size, num_neg+1)
+                targets = torch.zeros(args['batch_size']).long() # 각 배치의 몇번째 클래스가 정답인지 지정. 첫번째가 pos이므로 모두 0    
                 targets = targets.to(device)
-
                 sim_scores = sim_scores.view(args['batch_size'], -1)
                 sim_scores = F.log_softmax(sim_scores, dim=1)
-
-                # positive는 가깝게, negative는 멀게
+                
                 loss = F.nll_loss(sim_scores, targets)
+                val_loss += loss.item()
 
                 torch.cuda.empty_cache()
 
-                val_loss += loss.item()
-
-        epoch_loss = val_loss / len(val_dataloader)
+        epoch_loss = val_loss/len(val_dataloader)
 
         print(f"{epoch}th epoch Val LOSS:{epoch_loss}")
         if args['wandb'] == True:
