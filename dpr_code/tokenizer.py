@@ -14,14 +14,14 @@ def make_formulafile(file_name):
   with open(file_name) as f:
     data = json.load(f)
 
-  with open("data/formulas.txt", "w") as file:
+  with open("data/tokenizer/formulas.txt", "w") as file:
     cnt = 0
-    for doc in data['latex_anno']:
+    for doc in data:
       cnt += 1
       latexes = doc['latex']
       lst = list(map(plus, latexes))
       file.writelines(lst)
-  print('done formulas.txt !!!')
+  print(f'done {cnt}th line formulas.txt !!!')
 
 # train bpe tokenizer
 def make_tokenizer(formulas_file, max_length = 100, vocab_size = 600):
@@ -45,10 +45,10 @@ def make_tokenizer(formulas_file, max_length = 100, vocab_size = 600):
 
     files = [formulas_file]
     tokenizer.train(files, trainer)
-    tokenizer.save("data/tokenizer-bpe.json")
+    tokenizer.save("data/tokenizer/tokenizer-bpe.json")
     return tokenizer
 
 if __name__=='__main__':
-  file_name = 'data/anno.json'
+  file_name = 'data/clean_anno.json'
   make_formulafile(file_name)
-  make_tokenizer('data/formulas.txt', max_length=100, vocab_size=600)
+  make_tokenizer('data/tokenizer/formulas.txt', max_length=100, vocab_size=600)
