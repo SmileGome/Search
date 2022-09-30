@@ -1,11 +1,14 @@
-file_name: data/anno.json # after jy's dataset path change
-batch_size: 2
+all_file_name: data/clean_anno.json # after jy's dataset path change
+train_file_name: data/train  
+val_file_name: data/val_data.json
+test_file_name: data/test_data.jaon
+batch_size: 16
 num_epoch: 5
 wandb: False
 name: ex # wandb run name, model save folder name
 model_path:  'facebook/dpr-question_encoder-single-nq-base' # user's pretrained weight or hugginface model name
-tokenizer_path: "data/tokenizer-wordlevel.json"
-num_neg: 2
+tokenizer_path: "data/tokenizer/tokenizer-wordlevel.json"
+num_neg: 1
 learning_rate: !!float 2e-5
 adam_epsilon: !!float 1e-08
 gradient_accumulation_steps: 1
@@ -14,6 +17,6 @@ weight_decay: 0.01
 
 # fixed parameter
 seed: 1004
-report_step: 100
+report_step: 1
 max_length_token: 100
 vocab_size: 600
