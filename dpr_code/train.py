@@ -68,7 +68,7 @@ def validation(encoder, device, val_dataloader, doc_id):
     embs = torch.concat(embs, dim=0)
     cos = CosineSimilarity(dim=1, eps=1e-6)
     cnt = 0
-    for i, val in enumerate(embs):
+    for i, val in enumerate(tqdm(embs)):
         val = torch.unsqueeze(val, 0)
         sim_score = cos(val, embs).tolist()
         sim_score = [[s, i] for s, i in zip(sim_score, doc_id)]
