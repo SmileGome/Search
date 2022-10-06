@@ -30,5 +30,6 @@ with open('data/clean_anno.json', 'r') as f:
 #     max_len = length
 
 # print(max_len)
-
-print(dataset[0]['embedding'])
+a = dataset[0]['embedding']
+b = dataset[0]['latex']
+print(type(a), len(a), len(b), len(a[0]))
