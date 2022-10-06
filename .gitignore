@@ -5,3 +5,5 @@ __pycache__
 
 dpr_code/data/
 dpr_code/model/
+
+wandb/

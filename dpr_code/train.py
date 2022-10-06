@@ -53,8 +53,8 @@ def validation(encoder, device, val_dataloader, doc_id):
     encoder.eval()
     with torch.no_grad():
         for i, batch in enumerate(tqdm(val_dataloader)):
-            if i==(len(val_dataloader)//3): #########################modify
-                break
+            # if i==(len(val_dataloader)//3): #########################modify
+            #     break
             batch = tuple(t.to(device) for t in batch)
 
             inputs = {'input_ids': batch[0],
@@ -110,7 +110,9 @@ def train(args):
     # load model
     config = DPRConfig.from_pretrained(args['model_path'])
     encoder = DPRQuestionEncoder.from_pretrained(
-        args['model_path'], config=config)
+        args['model_path'], config=config, 
+        ignore_mismatched_sizes=True
+        )
     encoder = encoder.to(device)
 
     encoder.config.decoder_start_token_id = tokenizer.token_to_id("[CLS]")
