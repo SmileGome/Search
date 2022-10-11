@@ -126,6 +126,7 @@ def train(args):
     encoder.config.no_repeat_ngram_size = 3
     encoder.config.length_penalty = 2.0
     encoder.config.num_beams = 4
+    encoder.config.hidden_size = args['hidden_size']
 
     # start training
     # Optimizer
