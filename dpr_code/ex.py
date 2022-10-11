@@ -21,14 +21,19 @@
 import json
 
 with open('data/embeddings.txt', 'r') as f:
-  # while True:
   lines = f.readlines()
   print(len(lines))
 
 with open('data/doc_id.txt', 'r') as f:
-  # while True:
   lines = f.readlines()
   print(len(lines))
+
+with open('data/doc_emb.txt', 'r') as f:
+  lines = f.readlines()
+  for i in range(4):
+    print(len(lines[i]))
+  print(len(lines))
+
   # max_len = 0
 # for doc in dataset:
 #   length = len(doc['latex'])
