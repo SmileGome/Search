@@ -59,7 +59,7 @@ def embedding(file_name, tokenizer_path, model_path):
     encoder.eval()
 
     batch_size = 8
-    dataset, _ = make_dataset(file_name, tokenizer)
+    dataset = make_dataset(file_name, tokenizer)
     dataloader = DataLoader(
             dataset, batch_size=batch_size, shuffle=False, drop_last=False)
     del dataset
@@ -75,7 +75,8 @@ def embedding(file_name, tokenizer_path, model_path):
                     }
             outputs = encoder(**inputs).pooler_output.tolist()
             with open('data/embeddings.txt', 'a') as f:
-                f.write(str(outputs)+'\n')
+                for o in outputs:
+                    f.write(str(o)+'\n')
             #   embs.append(outputs.detach())
         
             torch.cuda.empty_cache()
@@ -101,9 +102,10 @@ def docid_emb(doc_file, emb_file):
 
 
 if __name__=="__main__":
-#   embedding("data/clean_anno.json", "data/tokenizer/tokenizer-bpe.json", 'model/ex/ep4_acc0.769')
+  embedding("data/clean_anno.json", "data/tokenizer/tokenizer-bpe.json", 'model/ex/ep4_acc0.769')
     
 # tokenizer_path = "data/tokenizer/tokenizer-bpe.json"
 # tokenizer = Tokenizer.from_file(tokenizer_path)
 # dataset, doc_id = make_dataset("data/clean_anno.json", tokenizer)
-    save_docid("data/clean_anno.json")
+
+    # save_docid("data/clean_anno.json")
