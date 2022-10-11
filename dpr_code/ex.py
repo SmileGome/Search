@@ -20,16 +20,22 @@
 
 import json
 
-with open('data/clean_anno.json', 'r') as f:
-  dataset = json.load(f)
+with open('data/embeddings.txt', 'r') as f:
+  # while True:
+  lines = f.readlines()
+  print(len(lines))
 
-# max_len = 0
+with open('data/doc_id.txt', 'r') as f:
+  # while True:
+  lines = f.readlines()
+  print(len(lines))
+  # max_len = 0
 # for doc in dataset:
 #   length = len(doc['latex'])
 #   if length > max_len:
 #     max_len = length
 
 # print(max_len)
-a = dataset[0]['embedding']
-b = dataset[0]['latex']
-print(type(a), len(a), len(b), len(a[0]))
+# a = dataset[11]['embedding']
+# b = dataset[11]['latex']
+# print(type(a), len(a), len(b), len(a[0]))
