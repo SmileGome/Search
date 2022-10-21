@@ -1,9 +1,11 @@
 __pycache__
 *.ipynb
 *.yaml
+*.pkl
 !config_train_ex.yaml
 
 dpr_code/data/
 dpr_code/model/
 
 wandb/
+dpr_code/ex.py
