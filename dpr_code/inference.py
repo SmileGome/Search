@@ -24,16 +24,16 @@ def embedding(input_str, tokenizer_path, model_path):
   encoder = encoder.to(device)
   encoder.eval()
   with torch.no_grad():
-    output = encoder(**input).pooler_output
+    output = encoder(**input).pooler_output.tolist()
   return output
 
 
 if __name__=="__main__":
-  with open('backend_sample_input.pkl', 'rb') as f:
+  with open('data/backend_sample_input.pkl', 'rb') as f:
     input_str = pickle.load(f)
   tokenizer_path = 'data/tokenizer/tokenizer-bpe.json'
   model_path = 'model\small_pool_384_shortval\ep3_acc0.847'
   emb = embedding(input_str, tokenizer_path, model_path)
-  print(emb.shape)
-  with open('backend_sample_output.pkl', 'wb') as f:
+  print(type(emb), len(emb))
+  with open('data/backend_sample_output.pkl', 'wb') as f:
     pickle.dump(emb, f)
