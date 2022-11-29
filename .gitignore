@@ -3,6 +3,7 @@ __pycache__
 *.yaml
 *.pkl
 !config_train_ex.yaml
+!elastic_search_example.ipynb
 
 dpr_code/data/
 dpr_code/model/
