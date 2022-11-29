@@ -5,8 +5,9 @@ __pycache__
 !config_train_ex.yaml
 !elastic_search_example.ipynb
 
-dpr_code/data/
-dpr_code/model/
+**/data/
+**/model/
+!**/.gitkeep
 
 wandb/
 dpr_code/ex.py
