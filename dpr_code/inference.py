@@ -29,11 +29,11 @@ def embedding(input_str, tokenizer_path, model_path):
 
 
 if __name__=="__main__":
-  with open('data/backend_sample_input.pkl', 'rb') as f:
+  with open('data/result/backend_sample/backend_sample_input.pkl', 'rb') as f:
     input_str = pickle.load(f)
   tokenizer_path = 'data/tokenizer/tokenizer-bpe.json'
-  model_path = 'model\small_pool_384_shortval\ep3_acc0.847'
+  model_path = 'model\small_pool_384_shortval\ep0_acc0.847'
   emb = embedding(input_str, tokenizer_path, model_path)
   print(type(emb), len(emb))
-  with open('data/backend_sample_output.pkl', 'wb') as f:
-    pickle.dump(emb, f)
+  # with open('data/backend_sample_output.pkl', 'wb') as f:
+  #   pickle.dump(emb, f)

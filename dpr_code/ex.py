@@ -18,29 +18,31 @@
 
 # from torch.utils.data import DataLoader, 
 
-import json
+# import json
 
-with open('data/embeddings.txt', 'r') as f:
-  lines = f.readlines()
-  print(len(lines))
+# with open('data/embeddings.txt', 'r') as f:
+#   lines = f.readlines()
+#   print(len(lines))
 
-with open('data/doc_id.txt', 'r') as f:
-  lines = f.readlines()
-  print(len(lines))
+# with open('data/doc_id.txt', 'r') as f:
+#   lines = f.readlines()
+#   print(len(lines))
 
-with open('data/doc_emb.txt', 'r') as f:
-  lines = f.readlines()
-  for i in range(4):
-    print(len(lines[i]))
-  print(len(lines))
+# with open('data/result/emb_short/doc_emb.txt', 'r') as f:
+#   lines = f.readlines()
+#   for i in range(4):
+#     print(len(lines[i]))
+#   print(len(lines))
 
-  # max_len = 0
-# for doc in dataset:
-#   length = len(doc['latex'])
-#   if length > max_len:
-#     max_len = length
+# import json
+# import pickle
 
-# print(max_len)
-# a = dataset[11]['embedding']
-# b = dataset[11]['latex']
-# print(type(a), len(a), len(b), len(a[0]))
+# with open('data\clean_anno.json', 'r') as f:
+#   data = json.load(f)
+#   sample_latex = data[0]['latex'][0]
+#   print(f'input: {sample_latex}')
+
+import pickle
+with open('data/result/backend_sample/backend_sample_input.pkl', 'rb') as f:
+  lst = pickle.load(f)
+print(len(lst), type(lst))
